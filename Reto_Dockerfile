@@ -1,0 +1,42 @@
+FROM osrf/ros:jazzy-desktop
+RUN apt update && apt upgrade -y && apt install -y nano iputils-ping python3-colcon-common-extensions && apt install -y python3-serial && apt install -y python3-matplotlib
+# Usar bash como shell para poder usar source
+SHELL ["/bin/bash", "-c"]
+
+# Cargar ROS2 y crear workspace
+RUN source /opt/ros/jazzy/setup.bash && \
+#    mkdir -p ~/ros2_ws/src
+
+# Establecer el directorio de trabajo
+WORKDIR /root/ros2_ws/src
+#RUN mkdir -p /root/ros2_ws/data
+
+# Crear el paquete
+RUN source /opt/ros/jazzy/setup.bash && \
+    ros2 pkg create --build-type ament_python sensor_program --license MIT
+
+#Copiar Archivos Sensor y reader
+COPY sensor_node.py /root/ros2_ws/src/sensor_program/sensor_program/
+COPY reader_node.py /root/ros2_ws/src/sensor_program/sensor_program/
+COPY plot_node.py /root/ros2_ws/src/sensor_program/sensor_program/
+
+#reemplazar contenido en setup.py
+COPY setup.py /root/ros2_ws/src/sensor_program/
+
+# Nos ubicamos en la raiz del Workspace
+WORKDIR /root/ros2_ws
+
+# Cargamos el entorno de nuestro Workspace
+
+RUN source /opt/ros/jazzy/setup.bash && \
+    colcon build
+
+# Auto source al entrar
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
+    echo "source /root/ros2_ws/install/setup.bash" >> /root/.bashrc
+
+# Inicia el entorno ROS
+ENTRYPOINT ["/ros_entrypoint.sh"]
+# Comando por defecto
+CMD ["bash"]
+
